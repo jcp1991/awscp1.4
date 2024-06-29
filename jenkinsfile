@@ -40,22 +40,20 @@ pipeline {
             }
         }
          
-        stage('Deplo') {
+                stage('Deplo') {
             steps {
-               sh '''
+                sh '''
                     sam build
-                    sam deploy --stack-name todo-list-aws --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-upt09go84tay --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --config-env staging
-
+                    sam deploy --stack-name "todo-list-aws" --region "us-east-1" --resolve-s3 --no-fail-on-empty-changeset --on-failure DO_NOTHING
                 '''
             }
         }
-         
-        stage('rest') {
+        stage('Rest') {
             environment {
                 BASE_URL = """${sh(
-                    returnStdout: true,
+                        returnStdout: true,
                         script: 'sam list endpoints --stack-name todo-list-aws --region us-east-1 --output json | jq -r \'.[] | select(.LogicalResourceId=="ServerlessRestApi").CloudEndpoint | .[0]\' | tr -d \'\n\t\''
-                )}"""
+                    )}""" 
             }
             steps {
                 sh '''

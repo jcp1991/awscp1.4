@@ -42,10 +42,10 @@ pipeline {
          
         stage('Deplo') {
             steps {
-                sh '''
-                    sam build
-                    sam deploy --stack-name todo-list-aws --resolve-s3 --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --force-upload --config-env staging
-                '''
+               sh '''
+                sam build
+                sam deploy --stack-name todo-list-aws --resolve-s3 --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --config-env staging
+            '''
             }
         }
          

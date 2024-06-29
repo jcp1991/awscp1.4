@@ -44,7 +44,7 @@ pipeline {
             steps {
                sh '''
                     sam build
-                    sam deploy --stack-name todo-list-aws --s3-bucket jcp191 --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --config-env staging
+                    sam deploy --stack-name "todo-list-aws" --region "us-east-1" --resolve-s3 --no-fail-on-empty-changeset --on-failure DO_NOTHING 
                 '''
             }
         }

@@ -44,7 +44,7 @@ pipeline {
             steps {
                sh '''
                     sam build
-                    sam deploy --stack-name list-aws --s3-bucket jcp191 --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --config-env staging
+                    sam deploy --stack-name todo-list-aws --resolve-s3 --region us-east-1 --no-confirm-changeset --no-fail-on-empty-changeset --force-upload --config-env staging
                 '''
             }
         }
@@ -53,7 +53,7 @@ pipeline {
             environment {
                 BASE_URL = """${sh(
                     returnStdout: true,
-                    script: 'sam list endpoints --stack-name list-aws --region us-east-1 --output json | jq -r \'.[] | select(.LogicalResourceId=="ServerlessRestApi").CloudEndpoint | .[0]\' | tr -d \'\n\t\''
+                        script: 'sam list endpoints --stack-name todo-list-aws --region us-east-1 --output json | jq -r \'.[] | select(.LogicalResourceId=="ServerlessRestApi").CloudEndpoint | .[0]\' | tr -d \'\n\t\''
                 )}"""
             }
             steps {

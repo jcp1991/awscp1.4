@@ -12,7 +12,7 @@ pipeline {
 
         stage('Static Analysis') {
             agent {
-                label 'agente1'
+                label 'agente2'
             }
             stages {
                 stage('flake8') {
@@ -81,7 +81,7 @@ pipeline {
 
         stage('Rest Test with Pytest') {
             agent {
-                label 'agente2'
+                label 'agente1'
             }
             steps {
                 script {

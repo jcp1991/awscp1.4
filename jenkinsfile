@@ -54,7 +54,7 @@ pipeline {
             }
         }
 
-         stage('Rest Test') {
+        stage('Rest Test') {
             steps {
                 script {
                     def apiUrl = sh(script: '''
@@ -80,7 +80,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Promote') {
             steps {

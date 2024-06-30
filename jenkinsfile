@@ -76,7 +76,7 @@ pipeline {
         stage('Promote') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'MyToken', variable: 'GIT_TOKEN')]) {
+                    withCredentials([string(credentialsId: 'luna', variable: 'GIT_TOKEN')]) {
                         // Configuración específica para el usuario y correo de Git
                         sh '''
                             git config --global user.name "jcp1991"

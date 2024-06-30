@@ -54,10 +54,11 @@ pipeline {
             }
         }
 
-        stage('Rest Test') {
+         stage('Rest Test') {
             steps {
                 script {
                     try {
+                        // Obtener la URL base de la API desde AWS CloudFormation
                         def apiUrl = sh(script: '''
                             aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text
                         ''', returnStdout: true).trim()

@@ -72,5 +72,41 @@ pipeline {
                 }
             }
         }
+
+        stage('Promote') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'MyToken', variable: 'GIT_TOKEN')]) {
+                        // Configuración específica para el usuario y correo de Git
+                        sh '''
+                            git config --global user.name "jcp1991"
+                            git config --global user.email "josecoca91@hotmail.com"
+                            git config -l
+                        '''
+
+                        // Checkout de la rama master y actualización desde el repositorio remoto
+                        sh '''
+                            git checkout master
+                            git pull origin master
+                        '''
+
+                        // Merge de la rama develop en master con estrategia ours
+                        sh '''
+                            git merge -X ours origin/develop --no-commit --no-ff
+                        '''
+
+                        // Reset de los archivos específicos en caso de conflicto
+                        sh '''
+                            git reset jenkinsfile
+                            git add jenkinsfile
+                            git commit -m "Merge develop into master, preserving jenkinsfile"
+                        '''
+
+                        // Push de los cambios fusionados a la rama master
+                        sh "git push https://${GIT_TOKEN}@github.com/jcp1991/awscp1.4.git master"
+                    }
+                }
+            }
+        }
     }
 }

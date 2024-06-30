@@ -1,13 +1,17 @@
 pipeline {
     agent any
+    environment {
+        AWS_REGION = 'us-east-1'  // Define el valor de la región aquí o configura como una variable de entorno en Jenkins
+        STAGE = 'staging'        // Define el valor del stage aquí o configura como una variable de entorno en Jenkins
+    }
     options {
-        // This is required if you want to clean before build
+        // Esto es requerido si deseas limpiar antes de la construcción
         skipDefaultCheckout(true)
     }
     stages {
         stage('Get Code') {
             steps {
-                // Clean before build
+                // Limpiar antes de la construcción
                 cleanWs()
                 git branch: 'develop', url: 'https://github.com/jcp1991/awscp1.4.git/'
             }
@@ -51,15 +55,14 @@ pipeline {
                         --no-fail-on-empty-changeset \
                         --no-confirm-changeset
                 '''
-                '''
             }
         }
         stage('Rest') {
             environment {
                 BASE_URL = """${sh(
                         returnStdout: true,
-                        script: 'sam list endpoints --stack-name todo-list-aws --region us-east-1 --output json | jq -r \'.[] | select(.LogicalResourceId=="ServerlessRestApi").CloudEndpoint | .[0]\' | tr -d \'\n\t\''
-                    )}""" 
+                        script: 'sam list endpoints --stack-name todo-list-aws-${STAGE} --region ${AWS_REGION} --output json | jq -r \'.[] | select(.LogicalResourceId=="ServerlessRestApi").CloudEndpoint | .[0]\' | tr -d \'\n\t\''
+                    )}"""
             }
             steps {
                 sh '''
@@ -68,6 +71,6 @@ pipeline {
                 junit 'result-rest.xml'
             }
         }
-     
     }
 }
+

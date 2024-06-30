@@ -43,7 +43,7 @@ pipeline {
             steps {
                 sh '''
                     sam build
-                    sam deploy --config-env staging --no-confirm-changeset --no-fail-on-empty-changeset --force-upload
+                    sam deploy --config-env staging --no-confirm-changeset --no-fail-on-empty-changeset --force-upload --capabilities CAPABILITY_IAM
                 '''
             }
         }

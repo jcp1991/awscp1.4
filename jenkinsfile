@@ -72,14 +72,20 @@ pipeline {
             def specificTodoResult = sh(script: getSpecificTodoCmd, returnStdout: true).trim()
 
             // Debugging: Imprimir resultados de las llamadas curl
+            echo "URL Base de la API: ${env.BASE_URL}"
             echo "Respuesta de getAllTodosCmd: ${allTodosResult}"
             echo "Respuesta de getSpecificTodoCmd: ${specificTodoResult}"
 
-            // Validación de resultados
-            if (allTodosResult.contains("expected_value_for_all_todos") && specificTodoResult.contains("expected_value_for_specific_todo")) {
-                echo "Pruebas de integración exitosas."
+            // Manejo de errores si la respuesta de specificTodoResult es vacía
+            if (specificTodoResult.isEmpty()) {
+                error "No se pudo obtener el todo específico. Las pruebas de integración han fallado."
             } else {
-                error "Las pruebas de integración han fallado."
+                // Validación de resultados
+                if (allTodosResult.contains("expected_value_for_all_todos") && specificTodoResult.contains("expected_value_for_specific_todo")) {
+                    echo "Pruebas de integración exitosas."
+                } else {
+                    error "Las pruebas de integración han fallado."
+                }
             }
         }
     }

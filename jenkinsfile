@@ -55,52 +55,53 @@ pipeline {
         }
 
         stage('Rest Test') {
-    steps {
-        script {
-            try {
-                def apiUrl = sh(script: '''
-                    aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text
-                ''', returnStdout: true).trim()
+            steps {
+                script {
+                    try {
+                        def apiUrl = sh(script: '''
+                            aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text
+                        ''', returnStdout: true).trim()
 
-                env.BASE_URL = apiUrl
+                        env.BASE_URL = apiUrl
 
-                // Llamada curl para obtener todos los todos
-                def getAllTodosCmd = "curl -s ${env.BASE_URL}/todos"
-                def allTodosResult = sh(script: getAllTodosCmd, returnStdout: true).trim()
+                        // Llamada curl para obtener todos los todos
+                        def getAllTodosCmd = "curl -s ${env.BASE_URL}/todos"
+                        def allTodosResult = sh(script: getAllTodosCmd, returnStdout: true).trim()
 
-                // Llamada curl para obtener un todo específico
-                def getSpecificTodoCmd = "curl -s ${env.BASE_URL}/todos/1"
-                def specificTodoResult = sh(script: getSpecificTodoCmd, returnStdout: true).trim()
+                        // Llamada curl para obtener un todo específico
+                        def getSpecificTodoCmd = "curl -s ${env.BASE_URL}/todos/1"
+                        def specificTodoResult = sh(script: getSpecificTodoCmd, returnStdout: true).trim()
 
-                // Debug: Imprimir resultados de las llamadas curl
-                echo "URL Base de la API: ${env.BASE_URL}"
-                echo "Respuesta de getAllTodosCmd: ${allTodosResult}"
-                echo "Respuesta de getSpecificTodoCmd: ${specificTodoResult}"
+                        // Debug: Imprimir resultados de las llamadas curl
+                        echo "URL Base de la API: ${env.BASE_URL}"
+                        echo "Respuesta de getAllTodosCmd: ${allTodosResult}"
+                        echo "Respuesta de getSpecificTodoCmd: ${specificTodoResult}"
 
-                // Validar que se obtenga una respuesta para getAllTodosCmd
-                if (allTodosResult.isEmpty()) {
-                    error "No se pudo obtener la lista completa de todos desde la API."
+                        // Validar que se obtenga una respuesta para getAllTodosCmd
+                        if (allTodosResult.isEmpty()) {
+                            error "No se pudo obtener la lista completa de todos desde la API."
+                        }
+
+                        // Validar que se obtenga una respuesta para getSpecificTodoCmd
+                        if (specificTodoResult.isEmpty()) {
+                            error "No se pudo obtener el todo específico con ID 1 desde la API."
+                        }
+
+                        // Validar el contenido del todo específico obtenido
+                        if (!specificTodoResult.contains("Integration text example")) {
+                            error "El contenido del todo específico obtenido no coincide con el esperado."
+                        }
+
+                        echo "Pruebas de integración con curl exitosas."
+
+                    } catch (Exception e) {
+                        echo "Error en la etapa Rest Test con curl: ${e.message}"
+                        currentBuild.result = 'FAILURE'  // Marcar el pipeline como fallido
+                        error "Fallo en las pruebas de integración con curl."
+                    }
                 }
-
-                // Validar que se obtenga una respuesta para getSpecificTodoCmd
-                if (specificTodoResult.isEmpty()) {
-                    error "No se pudo obtener el todo específico con ID 1 desde la API."
-                }
-
-                // Validar el contenido del todo específico obtenido
-                if (!specificTodoResult.contains("Integration text example")) {
-                    error "El contenido del todo específico obtenido no coincide con el esperado."
-                }
-
-                echo "Pruebas de integración exitosas."
-
-            } catch (Exception e) {
-                echo "Error en la etapa Rest Test: ${e.message}"
-                currentBuild.result = 'UNSTABLE'  // Marcar el pipeline como inestable
             }
         }
-    }
-}
 
         stage('Promote') {
             steps {

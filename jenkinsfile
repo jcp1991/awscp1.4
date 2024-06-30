@@ -1,8 +1,8 @@
 pipeline {
     agent any
     environment {
-        AWS_REGION = 'us-east-1'  // Define el valor de la región aquí o configura como una variable de entorno en Jenkins
-        STAGE = 'staging'        // Define el valor del stage aquí o configura como una variable de entorno en Jenkins
+        AWS_REGION = 'us-east-1'  // Define la región aquí o configúrala como una variable de entorno en Jenkins
+        STAGE = 'staging'        // Define el stage aquí o configúralo como una variable de entorno en Jenkins
     }
     options {
         // Esto es requerido si deseas limpiar antes de la construcción
@@ -43,20 +43,24 @@ pipeline {
                 }
             }
         }
+        
         stage('Deplo') {
             steps {
-                sh '''
-                    sam build
-                    sam deploy \
-                        --region ${AWS_REGION} \
-                        --config-env ${STAGE} \
-                        --template-file template.yaml \
-                        --config-file samconfig.toml \
-                        --no-fail-on-empty-changeset \
-                        --no-confirm-changeset
-                '''
+                withAWS(credentials: 'your-aws-credentials-id', region: "${AWS_REGION}") {
+                    sh '''
+                        sam build
+                        sam deploy \
+                            --region ${AWS_REGION} \
+                            --config-env ${STAGE} \
+                            --template-file template.yaml \
+                            --config-file samconfig.toml \
+                            --no-fail-on-empty-changeset \
+                            --no-confirm-changeset
+                    '''
+                }
             }
         }
+        
         stage('Rest') {
             environment {
                 BASE_URL = """${sh(
@@ -73,4 +77,3 @@ pipeline {
         }
     }
 }
-

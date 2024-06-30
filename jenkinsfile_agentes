@@ -81,7 +81,7 @@ pipeline {
 
         stage('Rest Test with Pytest') {
             agent {
-                label 'principal'
+                label 'agente3'
             }
             steps {
                 script {

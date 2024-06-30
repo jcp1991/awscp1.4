@@ -54,7 +54,7 @@ pipeline {
             }
         }
 
-        stage('Rest Test') {
+         stage('Rest Test') {
             steps {
                 script {
                     def apiUrl = sh(script: '''
@@ -63,15 +63,24 @@ pipeline {
 
                     env.BASE_URL = apiUrl
 
-                    sh '''
-                        export PYTHONPATH=$WORKSPACE
-                        pytest --junitxml=result-unit.xml -k "test_api_gettodo or test_api_listtodos" test/integration/todoApiTest.py
-                    '''
+                    // Llamada curl para obtener todos los todos
+                    def getAllTodosCmd = "curl -s ${env.BASE_URL}/todos"
+                    def allTodosResult = sh(script: getAllTodosCmd, returnStdout: true).trim()
 
-                    junit 'result*.xml'
+                    // Llamada curl para obtener un todo específico (ajustar según tu API)
+                    def getSpecificTodoCmd = "curl -s ${env.BASE_URL}/todos/1"
+                    def specificTodoResult = sh(script: getSpecificTodoCmd, returnStdout: true).trim()
+
+                    // Validación de resultados
+                    if (allTodosResult.contains("expected_value_for_all_todos") && specificTodoResult.contains("expected_value_for_specific_todo")) {
+                        echo "Pruebas de integración exitosas."
+                    } else {
+                        error "Las pruebas de integración han fallado."
+                    }
                 }
             }
         }
+
 
         stage('Promote') {
             steps {

@@ -6,6 +6,15 @@ pipeline {
             steps {
                 cleanWs()
                 git url: 'https://github.com/jcp1991/awscp1.4.git', branch: 'develop'
+
+                script {
+                    // Descargar samconfig.toml correspondiente a la rama actual
+                    def branchName = env.BRANCH_NAME ?: 'develop'
+                    def configBranch = branchName == 'develop' ? 'staging' : 'production'
+
+                    sh "git clone -b ${configBranch} https://github.com/tu-usuario/todo-list-aws-config.git"
+                    sh "cp todo-list-aws-config/samconfig.toml samconfig.toml"
+                }
             }
         }
 
@@ -36,7 +45,7 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deplo') {
             steps {
                 script {
                     def already_deployed = sh(script: '''
@@ -54,11 +63,11 @@ pipeline {
             }
         }
 
-         stage('Set Base URL') {
+        stage('Base URL') {
             steps {
                 script {
                     try {
-                        // Obtener la URL base de la API desde AWS CloudFormation
+                        //  URL base de la API desde AWS CloudFormation
                         def apiUrl = sh(script: '''
                             aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text
                         ''', returnStdout: true).trim()
@@ -74,11 +83,10 @@ pipeline {
             }
         }
 
-        stage('Rest Test with Pytest') {
+        stage('Rest') {
             steps {
                 script {
                     try {
-                        // Ejecutar pruebas de integración con Pytest desde el archivo todoApiTest.py
                         sh '''
                             pytest test/integration/todoApiTest.py
                         '''

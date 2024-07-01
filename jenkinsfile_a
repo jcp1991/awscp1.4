@@ -1,0 +1,134 @@
+pipeline {
+    agent any
+    stages {
+        stage('Get Code') {
+            steps {
+                cleanWs()
+                git url: 'https://github.com/jcp1991/awscp1.4.git', branch: 'develop'
+            }
+        }
+        stage('Static Analysis') {
+            parallel {
+                stage('flake8') {
+                    steps {
+                        sh '''
+                            flake8 --exit-zero --format=pylint src > flake8.out
+                        '''
+                        recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')], qualityGates: [
+                            [threshold: 10, type: 'TOTAL', unstable: false],
+                            [threshold: 12, type: 'TOTAL', unstable: false]
+                        ]
+                    }
+                }
+                stage('bandit') {
+                    steps {
+                        sh '''
+                            bandit --exit-zero -r src -f custom -o bandit.out --severity-level medium --msg-template "{abspath}:{line}: [{test_id}] {msg}"
+                        '''
+                        recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [
+                            [threshold: 1, type: 'TOTAL', unstable: false],
+                            [threshold: 2, type: 'TOTAL', unstable: false]
+                        ]
+                    }
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    def already_deployed = sh(script: '''
+                        aws cloudformation describe-stacks --stack-name todo-list-aws-production --region us-east-1
+                    ''', returnStatus: true)
+                    if (already_deployed != 0) {
+                        sh '''
+                            sam build
+                            sam validate --config-file samconfig.toml --region us-east-1
+                            sam deploy --stack-name todo-list-aws-production --capabilities "CAPABILITY_IAM" --s3-bucket aws-sam-cli-managed-default-samclisourcebucket-nqyfysup146y --s3-prefix todo-list-aws --region us-east-1 --parameter-overrides Stage="production"
+                        '''
+                    }
+                }
+            }
+        }
+
+stage('Rest Test with curl') {
+    steps {
+        script {
+            try {
+                echo "Ejecutando pruebas de integración con curl"
+
+                def baseUrl = env.BASE_URL
+                def endpoints = [
+                    [path: "/todos", expected: "[]"], 
+                    [path: "/todos/1", expected: '{"id":1,"task":"Test","done":false}']
+                ]
+
+                for (endpoint in endpoints) {
+                    def response = sh(script: "curl -s ${baseUrl}${endpoint.path}", returnStdout: true).trim()
+                    if (response != endpoint.expected) {
+                        echo "Error en la prueba de curl para ${endpoint.path}. Respuesta esperada: ${endpoint.expected}, recibida: ${response}"
+                        currentBuild.result = 'FAILURE'
+                        error "Fallo en las pruebas de integración con curl."
+                    } else {
+                        echo "Prueba con curl para ${endpoint.path} pasó correctamente."
+                    }
+                }
+            } catch (Exception e) {
+                echo "Error en la etapa Rest Test con curl: ${e.message}"
+                currentBuild.result = 'FAILURE'
+                error "Fallo en las pruebas de integración con curl."
+            }
+        }
+    }
+}
+
+        stage('Rest Test with Pytest') {
+            steps {
+                script {
+                    try {
+
+                        // Ejecutar pruebas de integración con Pytest desde el archivo todoApiTest.py
+                        sh '''
+                            pytest test/integration/todoApiTest.py
+                        '''
+                        echo "Pruebas de integración con Pytest exitosas."
+                    } catch (Exception e) {
+                        echo "Error en la etapa Rest Test con Pytest: ${e.message}"
+                        currentBuild.result = 'FAILURE'  // Marcar el pipeline como fallido
+                        error "Fallo en las pruebas de integración con Pytest."
+                    }
+                }
+            }
+        }
+        stage('Promote') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'luna', variable: 'GIT_TOKEN')]) {
+                        // Configuración específica para el usuario y correo de Git
+                        sh '''
+                            git config --global user.name "jcp1991"
+                            git config --global user.email "josecoca91@hotmail.com"
+                            git config -l
+                        '''
+                        // Checkout de la rama master y actualización desde el repositorio remoto
+                        sh '''
+                            git checkout master
+                            git pull origin master
+                        '''
+                        // Merge de la rama develop en master con estrategia ours
+                        sh '''
+                            git merge -X ours origin/develop --no-commit --no-ff
+                        '''
+                        // Reset de los archivos específicos en caso de conflicto
+                        sh '''
+                            git reset jenkinsfile
+                            git add jenkinsfile
+                            git commit -m "Merge develop into master, preserving jenkinsfile"
+                        '''
+                        // Push de los cambios fusionados a la rama master
+                        sh "git push https://${GIT_TOKEN}@github.com/jcp1991/awscp1.4.git master"
+                    }
+                }
+            }
+        }
+    }
+}

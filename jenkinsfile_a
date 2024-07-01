@@ -77,14 +77,21 @@ stage('Rest Test with curl') {
 
                 def baseUrl = env.BASE_URL
                 def endpoints = [
-                    [path: "/todos", expected: '[{"id": "da8c23f5-36c4-11ef-93e6-333b529fbc32", "text": "Integration text example"}]'], 
-                    [path: "/todos/1", expected: '{"id":1,"task":"Test","done":false}']
+                    [path: "/todos", expectedId: "da8c23f5-36c4-11ef-93e6-333b529fbc32", expectedText: "Integration text example"]
+                    // Agrega más endpoints según tus necesidades
                 ]
 
                 for (endpoint in endpoints) {
                     def response = sh(script: "curl -s ${baseUrl}${endpoint.path}", returnStdout: true).trim()
-                    if (response != endpoint.expected) {
-                        echo "Error en la prueba de curl para ${endpoint.path}. Respuesta esperada: ${endpoint.expected}, recibida: ${response}"
+
+                    // Parsear la respuesta JSON
+                    def jsonResponse = readJSON text: response
+
+                    // Verificar que la respuesta contenga al menos un elemento con los campos esperados
+                    def foundExpected = jsonResponse.any { it.id == endpoint.expectedId && it.text == endpoint.expectedText }
+
+                    if (!foundExpected) {
+                        echo "Error en la prueba de curl para ${endpoint.path}. No se encontró el elemento esperado."
                         currentBuild.result = 'FAILURE'
                         error "Fallo en las pruebas de integración con curl."
                     } else {

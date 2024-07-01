@@ -8,11 +8,16 @@ pipeline {
                 git url: 'https://github.com/jcp1991/awscp1.4.git', branch: 'develop'
 
                 script {
-                    // Descargar samconfig.toml correspondiente a la rama actual
-                    def branchName = env.BRANCH_NAME ?: 'develop'
+                    // Determinar la rama de configuración adecuada
+                    def branchName = env.BRANCH_NAME ?: 'develop'  // Por defecto, usa develop si no hay BRANCH_NAME definida
                     def configBranch = branchName == 'develop' ? 'staging' : 'production'
 
-                    sh "git clone -b ${configBranch} https://github.com/tu-usuario/todo-list-aws-config.git"
+                    // Usar el token para clonar el repositorio de configuración
+                    withCredentials([string(credentialsId: 'luna', variable: 'GIT_TOKEN')]) {
+                        sh "git clone -b ${configBranch} https://${GIT_TOKEN}@github.com/tu-usuario/todo-list-aws-config.git"
+                    }
+
+                    // Copiar el archivo de configuración
                     sh "cp todo-list-aws-config/samconfig.toml samconfig.toml"
                 }
             }

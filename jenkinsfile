@@ -14,7 +14,7 @@ pipeline {
 
                     // Usar el token para clonar el repositorio de configuración
                     withCredentials([string(credentialsId: 'luna', variable: 'GIT_TOKEN')]) {
-                        sh "git clone -b ${configBranch} https://${GIT_TOKEN}@github.com/tu-usuario/todo-list-aws-config.git"
+                        sh "git clone -b ${configBranch} https://${GIT_TOKEN}@github.com/jcp1991/todo-list-aws-config.git"
                     }
 
                     // Copiar el archivo de configuración

@@ -49,6 +49,25 @@ pipeline {
                 }
             }
         }
+stage('Set Base URL') {
+            steps {
+                script {
+                    try {
+                        // Obtener la URL base de la API desde AWS CloudFormation
+                        def apiUrl = sh(script: '''
+                            aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text
+                        ''', returnStdout: true).trim()
+
+                        env.BASE_URL = apiUrl
+                        echo "BASE_URL configurada correctamente: ${env.BASE_URL}"
+                    } catch (Exception e) {
+                        echo "Error al configurar BASE_URL: ${e.message}"
+                        currentBuild.result = 'FAILURE'  // Marcar el pipeline como fallido
+                        error "Fallo en la configuración de BASE_URL."
+                    }
+                }
+            }
+        }
 
 stage('Rest Test with curl') {
     steps {
